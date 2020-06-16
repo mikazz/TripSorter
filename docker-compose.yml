@@ -1,0 +1,58 @@
+version: '3.7'
+
+services:
+  nginx:
+    container_name: nginx
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - webapp
+
+  webapp:
+    build: .
+    image: webapp
+    container_name: webapp
+    ports:
+      - "8000:8000"
+    command: gunicorn -w 1 -b 0.0.0.0:8000 manage:app
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - FLASK_DEBUG=1
+      - APP_SETTINGS=project.server.config.DevelopmentConfig
+      - SECRET_KEY=my_precious
+    depends_on:
+      - redis
+      - mongodb
+
+  mongodb:
+    image: mongo:4.2-bionic
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+
+  worker:
+    image: webapp
+    command: python manage.py run_worker
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - APP_SETTINGS=project.server.config.DevelopmentConfig
+    depends_on:
+      - redis
+      - webapp
+
+  redis:
+    image: redis:5.0.7-alpine
+
+  dashboard:
+    build: ./project/dashboard
+    image: dashboard
+    container_name: dashboard
+    ports:
+      - 9181:9181
+    command: rq-dashboard -H redis
+    depends_on:
+      - redis
