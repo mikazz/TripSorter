@@ -44,12 +44,10 @@ def get_enqueued_jobs():
         return jsonify(response_object)
 
     if request.method == 'POST':
-        #task_type = request.get_json()["type"]
         graph = request.get_json()["graph"]
 
         with Connection(redis.from_url(current_app.config["REDIS_URL"])):
             q = Queue()
-            #task = q.enqueue(create_task, task_type)
             task = q.enqueue(create_task, graph)
 
             job = Job(job_id=task.get_id(),
@@ -57,8 +55,6 @@ def get_enqueued_jobs():
                       job_status=task.get_status(),
                       job_result=task.result,
                       job_timeout=task.timeout,
-                      #job_args=task.args,  # When passing tuple this will throw Exception
-                      #job_kwargs=[(k, v) for k, v in task.kwargs.items()],
                       job_is_queued=task.is_queued,
                       job_enqueued_at=task.enqueued_at,
                       job_is_finished=task.is_finished,
@@ -86,22 +82,6 @@ def get_enqueued_job(job_id):
                 "task_id": task.get_id(),
                 "task_status": task.get_status(),
                 "task_result": task.result,
-
-                # 'job_id': task.get_id(),
-                # 'job_status': task.get_status(),
-                # 'job_result': task.result,
-                # 'job_is_started': task.is_started,
-                # 'job_started_at': task.started_at,
-                # 'job_is_queued': task.is_queued,
-                # 'job_timeout': task.timeout,
-                # 'job_enqueued_at': task.enqueued_at,
-                # 'job_ended_at': task.ended_at,
-                # 'job_exc_info': task.exc_info,
-                # 'job_dependent_ids': task.dependent_ids,
-                # 'job_meta': task.meta,
-                # 'job_func_name': task.func_name,
-                # 'job_args': task.args,
-                # 'job_kwargs': task.kwargs,
             },
         }
     else:
@@ -109,13 +89,13 @@ def get_enqueued_job(job_id):
     return jsonify(response_object)
 
 
-@main_blueprint.route("/alljobs", methods=["GET"])
+@main_blueprint.route("/jobs", methods=["GET"])
 def get_jobs():
     jobs = Job.objects().to_json()
     return Response(jobs, mimetype="application/json", status=200)
 
 
-@main_blueprint.route("/alljobs/<job_id>", methods=["GET"])
+@main_blueprint.route("/jobs/<job_id>", methods=["GET"])
 def get_job(job_id):
     job = Job.objects.get(job_id=job_id).to_json()
     return Response(job, mimetype="application/json", status=200)
